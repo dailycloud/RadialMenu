@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Build RadialMenuWHook
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path bin | Out-Null
+          cl.exe /nologo /O2 /MT /std:c++20 /EHsc /I src /I third_party/imgui /I third_party/imgui/backends src/main.cpp src/core/config.cpp src/core/updater.cpp src/modules/audio_module.cpp src/modules/media_module.cpp src/modules/system_module.cpp src/input/global_hook.cpp src/ui/overlay_window.cpp src/ui/radial_renderer.cpp third_party/imgui/imgui.cpp third_party/imgui/imgui_draw.cpp third_party/imgui/imgui_tables.cpp third_party/imgui/imgui_widgets.cpp third_party/imgui/backends/imgui_impl_win32.cpp third_party/imgui/backends/imgui_impl_dx11.cpp /Fo:bin/ /Fe:bin/RadialMenuWHook.exe /link user32.lib gdi32.lib d3d11.lib dxgi.lib dwmapi.lib shell32.lib ole32.lib winhttp.lib /SUBSYSTEM:WINDOWS
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bin/RadialMenuWHook.exe
+          generate_release_notes: true
